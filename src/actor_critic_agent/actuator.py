@@ -2,7 +2,8 @@ import numpy as np
 
 
 ACTIONS_LABELS = [
-    'NOTHING', 'PITCH-1', 'PITCH+1', 'ROLL-1', 'ROLL+1', 'YAW-1', 'YAW+1'
+    'NOTHING', 'PITCH-1', 'PITCH+1', 'ROLL-1', 'ROLL+1',
+    'YAW-1', 'YAW+1', 'THROTTLE-0', 'THROTTLE+1' 
 ]
 
 
