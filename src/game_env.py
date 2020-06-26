@@ -52,40 +52,6 @@ class GameEnv(object):
         self.counter = 0
         self.prev_pitch = 90
 
-    def rotation_matrix(self):
-        """
-            changing quaternions to rotation matrix, from 4 to 9 parameters, based on:
-            http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
-            :return m00, m01, m02, m10, m11, m12, m20, m21, m22:
-        """
-        x, y, z, w = self.vessel.rotation(self.frame)
-
-        xx = x * x
-        xy = x * y
-        xz = x * z
-        xw = x * w
-
-        yy = y * y
-        yz = y * z
-        yw = y * w
-
-        zz = z * z
-        zw = z * w
-
-        m00 = 1 - 2 * (yy + zz)
-        m01 = 2 * (xy - zw)
-        m02 = 2 * (xz + yw)
-
-        m10 = 2 * (xy + zw)
-        m11 = 1 - 2 * (xx + zz)
-        m12 = 2 * (yz - xw)
-
-        m20 = 2 * (xz - yw)
-        m21 = 2 * (yz + xw)
-        m22 = 1 - 2 * (xx + yy)
-
-        return m00, m01, m02, m10, m11, m12, m20, m21, m22
-
     def step(self, action):
         """
         possible continuous actions: yaw[-1:1], pitch[-1:1], roll[-1:1], throttle[0:1],

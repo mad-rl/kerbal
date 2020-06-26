@@ -19,13 +19,13 @@ class Worker(object):
 
     def work(self):
         global global_rewards, global_episodes
-        total_steps = 1
-        max_episode_steps = 50
 
+        max_episode_steps = 50
         obs = self.env.reset(self.conn)
 
         done = False
         episode_reward = 0
+        total_steps = 0
         episode_steps = 0
         while not done:
             for _ in range(max_episode_steps):
