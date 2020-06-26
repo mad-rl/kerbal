@@ -19,15 +19,15 @@ class Worker(object):
 
     def work(self):
         global global_rewards, global_episodes
-        total_step = 1
+        total_steps = 1
         max_episode_steps = 50
 
         obs = self.env.reset(self.conn)
 
         done = False
+        episode_reward = 0
+        episode_steps = 0
         while not done:
-            episode_reward = 0
-
             for _ in range(max_episode_steps):
                 action = self.agent.get_action(obs)
 
@@ -37,18 +37,22 @@ class Worker(object):
                 self.agent.add_experience(obs, reward, action, next_obs, info)
 
                 obs = next_obs
-                total_step += 1
+                total_steps += 1
+                episode_steps += 1
 
                 if done:
                     global_rewards.append(episode_reward)
                     altitude = self.env.get_altitude()
 
                     print(f"{self.name} - Episode: {global_episodes:4} "
-                        f"| Steps: {total_step}" 
+                        f"| Total Steps: {total_steps}"
+                        f"| Episode Steps: {episode_steps}"
                         f"| Reward: {global_rewards[-1]:7.1f}" 
                         f"| Altitude: {altitude:7.1f}")
 
                     global_episodes += 1
+                    episode_reward = 0
+                    episode_steps = 0
                     obs = self.env.reset(self.conn)
                     done = False
                     break
