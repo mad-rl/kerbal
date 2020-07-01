@@ -2,6 +2,11 @@ import math
 import time
 import krpc
 
+from krpc_helper import KRPCHelper
+
+
+kh = KRPCHelper()
+
 turn_start_altitude = 250
 turn_end_altitude = 45000
 target_altitude = 150000
@@ -13,7 +18,10 @@ vessel = conn.space_center.active_vessel
 ut = conn.add_stream(getattr, conn.space_center, 'ut')
 altitude = conn.add_stream(getattr, vessel.flight(), 'mean_altitude')
 apoapsis = conn.add_stream(getattr, vessel.orbit, 'apoapsis_altitude')
-stage_2_resources = vessel.resources_in_decouple_stage(stage=2, cumulative=False)
+stage_2_resources = vessel.resources_in_decouple_stage(
+    stage=2,
+    cumulative=False
+)
 srb_fuel = conn.add_stream(stage_2_resources.amount, 'SolidFuel')
 
 # Pre-launch setup
@@ -30,15 +38,20 @@ print('1...')
 time.sleep(1)
 print('Launch!')
 
-
 vessel.control.activate_next_stage()
 vessel.auto_pilot.engage()
 vessel.auto_pilot.target_pitch_and_heading(90, 90)
+
+
+log_file = open('log.json', 'a')
 
 # Main ascent loop
 srbs_separated = False
 turn_angle = 0
 while True:
+
+    log_file.write(kh.get_telemetry().json())
+    log_file.write("\n")
 
     # Gravity turn
     if altitude() > turn_start_altitude and altitude() < turn_end_altitude:
@@ -118,10 +131,15 @@ vessel.control.throttle = 1.0
 time.sleep(burn_time - 0.1)
 print('Fine tuning')
 vessel.control.throttle = 0.05
-remaining_burn = conn.add_stream(node.remaining_burn_vector, node.reference_frame)
+remaining_burn = conn.add_stream(
+    node.remaining_burn_vector,
+    node.reference_frame
+)
 while remaining_burn()[1] > 0:
     pass
 vessel.control.throttle = 0.0
 node.remove()
 
 print('Launch complete')
+
+log_file.close()
