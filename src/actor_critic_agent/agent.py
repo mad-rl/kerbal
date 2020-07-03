@@ -24,9 +24,9 @@ class Agent():
 
     def get_action(self, observation):
         state = self.interpreter.obs_to_state(observation)
-        agent_action = self.knowledge.get_action(state)
+        agent_action, state_value = self.knowledge.get_action(state)
 
-        return self.actuator.agent_to_env(agent_action)
+        return self.actuator.agent_to_env(agent_action), state_value
 
     def add_experience(self, observation, reward, env_action, next_observation, info=None):
         state = self.interpreter.obs_to_state(observation)

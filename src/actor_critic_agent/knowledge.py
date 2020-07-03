@@ -54,10 +54,10 @@ class Knowledge():
                                     lr=self.learning_rate)
 
     def get_action(self, state):
-        policy, _ = self.model(torch.tensor(state).unsqueeze(0))
+        policy, value = self.model(torch.tensor(state).unsqueeze(0))
         action = F.softmax(policy, -1).multinomial(num_samples=1)
 
-        return action
+        return action, value
 
     def train(self, experiences):
         states  = torch.tensor(experiences[:, 0].tolist()).double()
@@ -98,3 +98,5 @@ class Knowledge():
         loss_fn = (policy_loss + self.value_loss_coef * value_loss)
         loss_fn.backward()
         self.optimizer.step()
+
+        torch.save(self.model.state_dict(), 'kerbal_ac.pth')
