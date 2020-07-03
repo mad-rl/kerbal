@@ -2,7 +2,7 @@ import yaml
 
 
 class Settings (object):
-    def __init__(self, load_from_yaml):
+    def __init__(self, load_from_yaml=""):
         # default settings
         self.max_episode_steps = 50
         self.save_game_name = "mad_rl_into_orbit"

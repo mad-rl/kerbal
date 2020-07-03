@@ -125,6 +125,7 @@ class KRPCHelper(object):
         self.conn.space_center.active_vessel.control.pitch = 0
         self.conn.space_center.active_vessel.control.yaw = 0
         self.conn.space_center.active_vessel.control.roll = 0
+        self.conn.space_center.active_vessel.control.throttle = 0
 
     def load_game(self):
         self.conn.space_center.load(self.settings.save_game_name)
