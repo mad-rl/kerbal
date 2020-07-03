@@ -14,8 +14,8 @@ class GameEnv(object):
         self.max_alt = max_alt
 
         # low and high values for each action (pitch, roll, yaw)
-        action_low = np.array([-1, -1, -1, 0])
-        action_high = np.array([1, 1, 1, 1])
+        action_low = np.array([-1, -1, -1])
+        action_high = np.array([1, 1, 1])
         self.action_space = spaces.Box(action_low, action_high, dtype=np.float32)
 
         low = np.array([0, -1, -1])
@@ -53,22 +53,7 @@ class GameEnv(object):
         self.prev_pitch = 90
 
     def step(self, action):
-        """
-        possible continuous actions: yaw[-1:1], pitch[-1:1], roll[-1:1], throttle[0:1],
-        other: forward[-1:1], up[-1:1], right[-1:1], wheel_throttle[-1:1], wheel_steering[-1:1],
-        available observation
-        https://krpc.github.io/krpc/python/api/space-center/control.html
-        available states:
-        https://krpc.github.io/krpc/python/api/space-center/flight.html
-        https://krpc.github.io/krpc/python/api/space-center/orbit.html
-        https://krpc.github.io/krpc/python/api/space-center/reference-frame.html
-        :param action:
-        :return state, reward, done, {}:
-        """
         done = False
-
-        # self.conn.ui.message(str(action), duration=1.5)
-
         start_act = self.ut()
         
         self.vessel.control.pitch = 0
@@ -76,16 +61,9 @@ class GameEnv(object):
         self.vessel.control.roll = 0
         self.choose_action(action)
 
-        # 10 actions in one second in game time
-        while self.ut() - start_act <= 0.1:
-            continue
-
         state = self.get_state()
-        # self.conn.ui.message("State: " + str(state), duration=1.5)
-
-        reward = self.turn_reward()
-        reward, done = self.epoch_ending(reward, done)
-        # self.conn.ui.message("Reward: " + str(round(reward, 2)), duration=1.5)
+        reward = self.altitude_reward()
+        done = self.epoch_ending()
 
         self.counter += 1
 
@@ -112,41 +90,26 @@ class GameEnv(object):
             self.vessel.control.yaw = -1
         elif action == 6:
             self.vessel.control.yaw = 1
-        elif action == 7:
-            self.vessel.control.throttle = 0
-        elif action == 8:
-            self.vessel.control.throttle = 1
 
-    def epoch_ending(self, reward, done):
+    def epoch_ending(self):
+        done = False
         if self.altitude() >= self.max_alt:
-            reward = 1
             done = True
-            print('reached max altitude at: ', self.altitude(), end=' | ')
+            print('reached max altitude at: ', self.altitude())
         elif self.crew() == 0:
-            reward = -1
             done = True
             print('crew is dead :(')
-        else:
-            reward = -1
 
-        return reward, done
+        return done
 
     def reset(self, conn):
-        """
-        revivekerbals is a quick save file and should be in /GOG/KSP/game/saves/kill
-        to run the code you will need to download it from
-        https://drive.google.com/file/d/1L1DdeUdHpcMSmO8royVWocitVR93UwdE
-        :param conn: krpc.connection
-        :return: state
-        """
         self.altitude_max = 0
-        quick_save = "revivekerbals"
+        quick_save = "Launch into orbit"
 
         try:
             self.conn.space_center.load(quick_save)
         except Exception as ex:
             print("Error:", ex)
-            print("Add \"kill\" save to your saves directory")
             exit("You have no quick save named {}. Terminating.".format(quick_save))
 
         time.sleep(3)
@@ -180,17 +143,14 @@ class GameEnv(object):
 
         return deviation
 
-    def turn_reward(self):
+    def altitude_reward(self):
         reward = 0
         if str(self.vessel.situation) == "VesselSituation.flying":
-            deviation = self.difference()
-            if deviation < 10:
+            alt_diff = self.altitude() - self.altitude_max
+            if alt_diff > 0:
                 reward = 1
             else:
                 reward = -1
-
-            self.prev_pitch = self.pitch()
-
         return reward
 
     def activate_engine(self, throttle=1.0):
