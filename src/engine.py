@@ -1,4 +1,4 @@
-import os 
+import os
 from agents.actor_critic_agent.agent import Agent
 from game_env import GameEnv
 from settings import Settings

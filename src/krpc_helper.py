@@ -59,11 +59,6 @@ class Telemetry(object):
         o_periapsis_altitude: float,
         f_mean_altitude: float,
         f_g_force: float,
-        f_velocity: Tuple[float, float, float],
-        f_speed: float,
-        f_horizontal_speed: float,
-        f_vertical_speed: float,
-        f_center_of_mass:  Tuple[float, float, float],
         f_rotation: Tuple[float, float, float, float],
         f_direction: Tuple[float, float, float],
         f_normal: Tuple[float, float, float],
@@ -84,11 +79,6 @@ class Telemetry(object):
         self.o_periapsis_altitude = o_periapsis_altitude
         self.f_mean_altitude = f_mean_altitude
         self.f_g_force = f_g_force
-        self.f_velocity = f_velocity
-        self.f_speed = f_speed
-        self.f_horizontal_speed = f_horizontal_speed
-        self.f_vertical_speed = f_vertical_speed
-        self.f_center_of_mass = f_center_of_mass
         self.f_rotation = f_rotation
         self.f_direction = f_direction
         self.f_normal = f_normal
@@ -102,7 +92,7 @@ class Telemetry(object):
         self.f_drag = f_drag
         self.f_lift = f_lift
         self.r_resources = r_resources
-        self.p_parts = p_parts
+        # self.p_parts = p_parts
         self.ut = ut
 
     def json(self):
@@ -175,11 +165,6 @@ class KRPCHelper(object):
             self.conn.add_stream(getattr, avo, 'periapsis_altitude')(),
             self.conn.add_stream(getattr, avf, 'mean_altitude')(),
             self.conn.add_stream(getattr, avf, 'g_force')(),
-            self.conn.add_stream(getattr, avf, 'velocity')(),
-            self.conn.add_stream(getattr, avf, 'speed')(),
-            self.conn.add_stream(getattr, avf, 'horizontal_speed')(),
-            self.conn.add_stream(getattr, avf, 'vertical_speed')(),
-            self.conn.add_stream(getattr, avf, 'center_of_mass')(),
             self.conn.add_stream(getattr, avf, 'rotation')(),
             self.conn.add_stream(getattr, avf, 'direction')(),
             self.conn.add_stream(getattr, avf, 'normal')(),
