@@ -1,6 +1,5 @@
 import krpc
 import json
-from settings import Settings
 
 
 class Resource(object):
@@ -47,13 +46,13 @@ class Telemetry(object):
 
 
 class KRPCHelper(object):
-    def __init__(self, settings: Settings):
+    def __init__(self, address: str, rpc_port: int, stream_port: int):
         conn_settings: dict = {
-            "address": settings.krpc_address,
-            "rpc_port": settings.krpc_rpc_port,
-            "stream_port": settings.krpc_stream_port
+            "address": address,
+            "rpc_port": rpc_port,
+            "stream_port": stream_port
         }
-        self.settings: Settings = settings
+        print(f"KRPCHelper {conn_settings}")
         self.conn = krpc.connect(**conn_settings)
 
     def reset_controls(self):
@@ -64,8 +63,8 @@ class KRPCHelper(object):
         self.conn.space_center.active_vessel.control.roll = 0
         self.conn.space_center.active_vessel.control.throttle = 0
 
-    def load_game(self):
-        self.conn.space_center.load(self.settings.save_game_name)
+    def load_game(self, saved_game_name: str):
+        self.conn.space_center.load(saved_game_name)
 
     def get_telemetry(self) -> Telemetry:
         sc = self.conn.space_center

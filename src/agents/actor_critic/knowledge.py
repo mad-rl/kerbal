@@ -1,10 +1,7 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
-from torch.distributions.categorical import Categorical
 
 
 class ActorCritic(torch.nn.Module):
@@ -60,13 +57,13 @@ class Knowledge():
         return action
 
     def train(self, experiences):
-        states  = torch.tensor(experiences[:, 0].tolist()).double()
+        states = torch.tensor(experiences[:, 0].tolist()).double()
         rewards = torch.tensor(experiences[:, 1].tolist()).double()
         actions = torch.tensor(experiences[:, 2].tolist()).long()
         next_states = torch.tensor(experiences[:, 3].tolist()).double()
 
         logits, values = self.model(states)
-        probs     = F.softmax(logits, -1)
+        probs = F.softmax(logits, -1)
         log_probs = F.log_softmax(logits, -1)
         entropies = -(log_probs * probs).sum(1, keepdim=True)
         log_probs = log_probs.gather(1, actions.unsqueeze(1))

@@ -1,20 +1,28 @@
-import os
-from agents.actor_critic_agent.agent import Agent
+from agents.actor_critic.agent import Agent
 from game_env import GameEnv
-from settings import Settings
 from logger import Logger
+from rabbitmq import RabbitMQHelper, ExperienceMessage
+from influxdb import InfluxDBHelper, Metric_Reward
 
 
-class Worker(object):
-    def __init__(self):
-        self.settings: Settings = Settings(os.getenv("SETTINGS_PATH"))
-        self.env = GameEnv(self.settings)
-
-        self.logger: Logger = Logger()
-
-        self.agent = Agent(
-            action_space=self.env.action_space.shape[0],
-            observation_space=self.env.observation_space.shape[0])
+class Engine():
+    def __init__(
+        self,
+        logger: Logger,
+        rabbit: RabbitMQHelper,
+        influx: InfluxDBHelper,
+        env: GameEnv,
+        agent: Agent,
+        episodes: int,
+        max_steps: int
+    ):
+        self.logger: Logger = logger
+        self.rabbit: RabbitMQHelper = rabbit
+        self.influx: InfluxDBHelper = influx
+        self.env: GameEnv = env
+        self.agent: Agent = agent
+        self.episodes: int = episodes
+        self.max_steps: int = max_steps
 
     def run(self):
         global_rewards: list = []
@@ -31,14 +39,37 @@ class Worker(object):
 
         obs = self.env.reset()
 
-        while not done:
-            for _ in range(self.settings.max_episode_steps):
+        episode: int = 0
+        while episode < self.episodes:
+            episode = episode + 1
+            step = 0
+            while not done and step < self.max_steps:
+                step = step + 1
+
                 action = self.agent.get_action(obs)
 
                 next_obs, reward, done, info = self.env.step(action)
                 episode_reward += reward
 
-                self.agent.add_experience(obs, reward, action, next_obs, info)
+                self.influx.send_reward(Metric_Reward(
+                    self.agent.model_version,
+                    'exp001',
+                    episode,
+                    step,
+                    reward
+                ))
+
+                experience: dict = self.agent.add_experience(
+                    obs, reward, action, next_obs, info)
+
+                self.rabbit(ExperienceMessage(
+                    episode,
+                    step,
+                    experience['state'],
+                    experience['action'],
+                    reward,
+                    0  # TODO: add value
+                ))
 
                 obs = next_obs
                 total_steps += 1
@@ -63,8 +94,3 @@ class Worker(object):
                     break
 
             self.agent.train()
-
-
-if __name__ == "__main__":
-    worker = Worker()
-    worker.work()

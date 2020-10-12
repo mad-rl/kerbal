@@ -1,20 +1,36 @@
-from krpc_helper import KRPCHelper
-from settings import Settings
+
+import numpy as np
+from gym import spaces
 
 
 class GameEnv(object):
-    def __init__(self, settings: Settings):
-        self.kh = KRPCHelper(settings)
-        self.settings = settings
-        self.action_space  # TODO: Define Action Space
-        self.observation_space  # TODO: Define Observation Space
+    def __init__(self, logger, krpc, saved_game_name: str):
+        self.logger = logger
+        self.krpc = krpc
+        self.saved_game_name = saved_game_name
+
+        self.max_alt = 45000
+        action_low = np.array([-1, -1, -1])
+        action_high = np.array([1, 1, 1])
+        self.action_space = spaces.Box(
+            action_low,
+            action_high,
+            dtype=np.float32
+        )
+        low = np.array([0, -1, -1])
+        high = np.array([1, 1, 1])
+        self.observation_space = spaces.Box(
+            low,
+            high,
+            dtype=np.float32
+        )
 
         self.last_altitude = 0
 
     def step(self, action):
         done = False
 
-        self.kh.reset_controls()
+        self.krpc.reset_controls()
 
         self.choose_action(action)
 
@@ -28,23 +44,23 @@ class GameEnv(object):
         if action == 0:  # do nothing action, wait
             pass
         elif action == 1:
-            self.kh.vessel.control.pitch = -1
+            self.krpc.vessel.control.pitch = -1
         elif action == 2:
-            self.kh.vessel.control.pitch = 1
+            self.krpc.vessel.control.pitch = 1
         elif action == 3:
-            self.kh.vessel.control.roll = -1
+            self.krpc.vessel.control.roll = -1
         elif action == 4:
-            self.kh.vessel.control.roll = 1
+            self.krpc.vessel.control.roll = 1
         elif action == 5:
-            self.kh.vessel.control.yaw = -1
+            self.krpc.vessel.control.yaw = -1
         elif action == 6:
-            self.kh.vessel.control.yaw = 1
+            self.krpc.vessel.control.yaw = 1
         elif action == 7:
-            self.kh.vessel.control.throttle = 0
+            self.krpc.vessel.control.throttle = 0
         elif action == 8:
-            self.kh.vessel.control.throttle = 1
+            self.krpc.vessel.control.throttle = 1
         elif action == 9:
-            self.kh.vessel.activate_next_stage()
+            self.krpc.vessel.activate_next_stage()
 
     def epoch_ending(self, done):
         if self.crew() == 0:
@@ -55,18 +71,19 @@ class GameEnv(object):
 
     def get_reward(self):
         reward = -0.1
-        if self.kh.get_telemetry().f_mean_altitude > self.last_altitude:
+        if self.krpc.get_telemetry().f_mean_altitude > self.last_altitude:
             reward = 0.1
-        self.last_altitude = self.kh.get_telemetry().f_mean_altitude
+        self.last_altitude = self.krpc.get_telemetry().f_mean_altitude
         return reward
 
     def reset(self):
-        self.kh.load_game()
+        print(f"loading {self.saved_game_name}")
+        self.krpc.load_game(self.saved_game_name)
         self.last_altitude = 0
         state = self.get_state()
         return state
 
     def get_state(self):
-        telemetry = self.kh.get_telemetry()
+        telemetry = self.krpc.get_telemetry()
         state = telemetry.__dict__
         return state

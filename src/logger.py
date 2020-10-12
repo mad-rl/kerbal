@@ -1,12 +1,10 @@
-from settings import Settings
 import time
 import os
 
 
 class Logger(object):
-    def __init__(self, settings: Settings):
+    def __init__(self):
         self.uid = time.time()
-        self.settings = settings
 
     def save(
         self,
@@ -14,7 +12,7 @@ class Logger(object):
         id: str = "default",
     ):
         log_file = f'{self.uid}_{id}.log'
-        full_log_path = os.path.join(self.settings.logs_path, log_file)
+        full_log_path = os.path.join(os.environ['LOGS_PATH'], log_file)
         with open(full_log_path, "a") as file:
             file.write(json.dumps(json))
             file.write("\n")

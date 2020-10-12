@@ -1,5 +1,3 @@
-import numpy as np
-
 
 class Sensor():
     def __init__(self, observation):

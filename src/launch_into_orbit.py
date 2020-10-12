@@ -1,14 +1,21 @@
 import math
 import time
 import krpc
+import random
 
 from settings import Settings
-from krpc_helper import KRPCHelper
+from krpc_helper import KRPCHelper, Telemetry
+from queue_helper import QueueHelper
+from metrics_helper import MetricsHelper
+from experience import Experience
 
 
 def main():
     print("Hello World!")
 
+    qh = QueueHelper()
+    qh.open_conn()
+    mh = MetricsHelper('jonas')
     kh = KRPCHelper(Settings())
 
     turn_start_altitude = 250
@@ -51,9 +58,13 @@ def main():
     # Main ascent loop
     srbs_separated = False
     turn_angle = 0
+
+    step = 0
+    experiences = []
     while True:
 
-        log_file.write(f'{kh.get_telemetry().json()}\n')
+        telemetry: Telemetry = kh.get_telemetry()
+        log_file.write(f'{telemetry.json()}\n')
 
         # Gravity turn
         if altitude() > turn_start_altitude and altitude() < turn_end_altitude:
@@ -75,6 +86,20 @@ def main():
         if apoapsis() > target_altitude*0.9:
             print('Approaching target apoapsis')
             break
+
+        step = step + 1
+
+        new_experience = Experience(
+            step,
+            [telemetry.f_mean_altitude, telemetry.f_orbital_speed],
+            random.randrange(1, 50),
+            altitude()/turn_end_altitude,
+            1-(altitude()/turn_end_altitude)
+        )
+        qh.send_experience(new_experience)
+        experiences.append(new_experience)
+
+    mh.send_experiences(experiences)
 
     # Disable engines when target apoapsis is reached
     vessel.control.throttle = 0.25
@@ -122,7 +147,8 @@ def main():
 
     # Execute burn
     print('Ready to execute burn')
-    time_to_apoapsis = conn.add_stream(getattr, vessel.orbit, 'time_to_apoapsis')
+    time_to_apoapsis = conn.add_stream(
+        getattr, vessel.orbit, 'time_to_apoapsis')
     while time_to_apoapsis() - (burn_time/2.) > 0:
         pass
     print('Executing burn')
@@ -142,6 +168,7 @@ def main():
     print('Launch complete')
 
     log_file.close()
+    qh.close_conn()
 
 
 if __name__ == "__main__":
