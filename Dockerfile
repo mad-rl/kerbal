@@ -12,5 +12,6 @@ COPY src/ .
 COPY saved_games/ ./saved_games/
 
 ENV PYTHONPATH=./
+ENV PYTHONUNBUFFERED=1
 
 CMD [ "python", "./start.py" ]

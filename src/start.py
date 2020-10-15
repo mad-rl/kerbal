@@ -1,4 +1,5 @@
 import os
+
 from influxdb import InfluxDBHelper
 from mongodb import MongoDBHelper
 from rabbitmq import RabbitMQHelper
@@ -9,6 +10,9 @@ from logger import Logger
 from engine import Engine
 from game_env import GameEnv
 from agents.actor_critic.agent import Agent
+
+
+print('\n####### PRE-START CHECKINGS ######')
 
 # check influx connectivity
 print('checking influxdb access...')
@@ -40,16 +44,26 @@ rabbit: RabbitMQHelper = RabbitMQHelper(
 print('RABBITMQ IS READY')
 
 # check krpc connectivity
+print('checking KRPC connection with GAME...')
 krpc: KRPCHelper = KRPCHelper(
     os.environ["KRPC_ADDRESS"],
     int(os.environ["KRPC_RPC_PORT"]),
     int(os.environ["KRPC_STREAM_PORT"])
 )
+print('KRPC IS READY')
+
+print('\n####### DASHBOARD ######')
+print('Please use the folliing links in order to access the differebt dashboards')
+print(f'>>> MongoDB: {os.environ["MONGODB_DASHBOARD"]}')
+print(f'>>> RabbitMQ: {os.environ["RABBITMQ_DASHBOARD"]}')
+print(f'>>> InfluxDB: {os.environ["INFLUXDB_DASHBOARD"]}')
 
 AGENT_MODE = os.environ["AGENT_MODE"]
 if AGENT_MODE == "test":
-    print('all working')
+    print('\n####### EVERYTHING LOOKS READY ######')
 else:
+    print(
+        f'\n####### STARTING ENVIRONMENT WITH AGENT IN MODE [{AGENT_MODE}] ######')
     logger: Logger = Logger()
     env: GameEnv = GameEnv(
         logger,

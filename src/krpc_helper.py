@@ -52,7 +52,6 @@ class KRPCHelper(object):
             "rpc_port": rpc_port,
             "stream_port": stream_port
         }
-        print(f"KRPCHelper {conn_settings}")
         self.conn = krpc.connect(**conn_settings)
 
     def reset_controls(self):
