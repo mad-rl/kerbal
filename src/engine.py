@@ -1,34 +1,36 @@
 import numpy as np
 import os
 
-import krpc
-
-from actor_critic_agent.agent import Agent
+from agents.actor_critic.agent import Agent
 from game_env import GameEnv
+from logger import Logger
+from settings import Settings
 
 
 class Worker(object):
-    def __init__(self, name, conn):
-        self.conn = conn
-        self.env = GameEnv(conn=self.conn)
-        self.name = name
+    def __init__(self):
+        self.settings: Settings = Settings(os.getenv("SETTINGS_PATH"))
+        self.env = GameEnv(self.settings)
+        self.logger: Logger = Logger(self.settings)
 
         self.agent = Agent(
-            action_space=self.env.action_space.shape[0],
-            observation_space=self.env.observation_space.shape[0])
+            action_space=self.env.action_space,
+            observation_space=self.env.observation_space)
 
-    def work(self):
-        global global_rewards, global_values, global_episodes
+    def run(self):
+        global_rewards: list = []
+        global_values: list = []
+        global_episodes: int = 0
+
+        done: bool = False
+        rewards: list = []
+        episode_reward: int = 0
+        episode_steps: int = 0
+        total_steps: int = 0
 
         max_episode_steps = 50
-        obs = self.env.reset(self.conn)
+        obs = self.env.reset()
 
-        rewards = []
-
-        done = False
-        episode_reward = 0
-        total_steps = 0
-        episode_steps = 0
         while not done:
             for _ in range(max_episode_steps):
                 action, value = self.agent.get_action(obs)
@@ -46,21 +48,22 @@ class Worker(object):
 
                 if done:
                     global_rewards.append(episode_reward)
-                    altitude = self.env.get_altitude()
+                    altitude = self.env.last_altitude
 
-                    print(f"{self.name} - Episode: {global_episodes} "
-                        f"| Total Steps: {total_steps} "
-                        f"| Episode Steps: {episode_steps} "
-                        f"| Reward: {global_rewards[-1]:7.1f} "
-                        f"| Mean episode reward: {np.mean(rewards)} "
-                        f"| Mean accumulated value: {np.mean(global_values)} "
-                        f"| Altitude: {altitude:7.1f}")
+                    self.logger.print({
+                            "global_episodes": global_episodes,
+                            "total_steps": total_steps,
+                            "global_rewards": global_rewards,
+                            "episode_steps": episode_steps,
+                            "episode_reward": episode_steps,
+                            "altitude": altitude
+                        })
 
                     global_episodes += 1
                     episode_reward = 0
                     episode_steps = 0
                     rewards = []
-                    obs = self.env.reset(self.conn)
+                    obs = self.env.reset()
                     done = False
                     break
 
@@ -68,17 +71,5 @@ class Worker(object):
 
 
 if __name__ == "__main__":
-    name = "MAD_RL_Agent"
-    conns = [
-        {'name': name, "address": "127.0.0.1", "rpc_port": 50000, "stream_port": 50001},
-    ]
-    connections = [krpc.connect(**conns[0])]
-    
-    global_rewards = []
-    global_values = []
-    global_episodes = 0
-
-    print("Starting process")
-
-    worker = Worker(name, connections[0])
-    worker.work()
+    worker = Worker()
+    worker.run()
