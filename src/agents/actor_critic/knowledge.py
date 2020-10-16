@@ -66,7 +66,7 @@ class Knowledge():
         next_states = torch.tensor(experiences[:, 3].tolist()).double()
 
         logits, values = self.model(states)
-        probs     = F.softmax(logits, -1)
+        probs = F.softmax(logits, -1)
         log_probs = F.log_softmax(logits, -1)
         entropies = -(log_probs * probs).sum(1, keepdim=True)
         log_probs = log_probs.gather(1, actions.unsqueeze(1))
@@ -99,4 +99,4 @@ class Knowledge():
         loss_fn.backward()
         self.optimizer.step()
 
-        torch.save(self.model.state_dict(), 'kerbal_ac.pth')
+        torch.save(self.model.state_dict(), 'artifacts/kerbal_ac.pth')

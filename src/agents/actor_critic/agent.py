@@ -10,7 +10,7 @@ class Agent():
     def __init__(self, action_space=None, observation_space=None):
         self.action_space = action_space
         self.input_frames = 4
-        self.output_model = (2 * action_space) + 1  # 3 actions with two moves and None action
+        self.output_model = (2 * action_space) + 1
         self.input_model = self.input_frames * observation_space
 
         self.knowledge = Knowledge(self.input_model, self.output_model)
