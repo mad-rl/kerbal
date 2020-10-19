@@ -1,4 +1,3 @@
-import socket
 import os
 
 from influxdb import InfluxDBHelper
@@ -81,7 +80,7 @@ else:
         env,
         AGENT_MODE,
         os.environ["MODEL_VERSION"],
-        socket.gethostname()
+        os.environ["HOST_NAME"]
     )
 
     engine = Engine(
@@ -89,6 +88,6 @@ else:
         env,
         agent,
         int(os.environ['EPISODES']),
-        int(os.environ['MAX_STEPS_PER_EPISODE'])
+        int(os.environ['MAX_TRAJECTORY_STEPS'])
     )
     engine.run()

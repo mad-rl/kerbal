@@ -7,11 +7,13 @@ class Metric():
     def __init__(
         self,
         measurement: str,
+        host: str,
         model_version: str,
         episode: int,
         step: int
     ):
         self.measurement: str = measurement
+        self.host: str = host
         self.model_version: str = model_version
         self.episode: int = episode
         self.step: int = step
@@ -21,6 +23,7 @@ class Metric():
 class Metric_Reward(Metric):
     def __init__(
         self,
+        host: str,
         model_version: str,
         episode: int,
         step: int,
@@ -28,6 +31,7 @@ class Metric_Reward(Metric):
     ):
         super().__init__(
             "reward",
+            host,
             model_version,
             episode,
             step
@@ -54,6 +58,7 @@ class InfluxDBHelper():
 
     def send_reward(self, metric: Metric_Reward):
         _point = Point(metric.measurement)
+        _point.tag("host", metric.model_version)
         _point.tag("model_version", metric.model_version)
         _point.field("episode", metric.episode)
         _point.field("step", metric.step)

@@ -10,57 +10,49 @@ class Engine():
         env: GameEnv,
         agent: Agent,
         episodes: int,
-        max_steps: int
+        max_trajectory_steps: int
     ):
         self.logger: Logger = logger
         self.env: GameEnv = env
         self.agent: Agent = agent
         self.episodes: int = episodes
-        self.max_steps: int = max_steps
+        self.max_trajectory_steps: int = max_trajectory_steps
 
     def run(self):
-
         global_rewards: list = []
         global_values: list = []
-        global_episodes: int = 0
 
         done: bool = False
         rewards: list = []
         episode_reward: int = 0
-        episode_steps: int = 0
-        total_steps: int = 0
 
-        max_episode_steps = 50
         obs = self.env.reset()
 
-        while not done:
+        current_episode: int - 0
+        for current_episode in range(self.episodes):
+            current_episode = current_episode + 1
             self.agent.start_episode()
-            for _ in range(max_episode_steps):
-                self.agent.start_step()
-                action, value = self.agent.get_action(obs)
+            while not done:
+                self.agent.start_new_trajectory()
+                for _ in range(self.max_trajectory_steps):
+                    self.agent.start_step()
+                    action, value = self.agent.get_action(obs)
 
-                next_obs, reward, done, info = self.env.step(action)
-                episode_reward += reward
+                    next_obs, reward, done, info = self.env.step(action)
+                    episode_reward += reward
 
-                rewards.append(reward)
-                global_values.append(value.item())
-                self.agent.add_experience(obs, reward, action, next_obs, info)
+                    rewards.append(reward)
+                    global_values.append(value.item())
+                    self.agent.add_experience(
+                        obs, reward, action, next_obs, info)
 
-                obs = next_obs
-                total_steps += 1
-                episode_steps += 1
+                    obs = next_obs
+                    self.agent.end_step()
 
-                self.agent.end_step()
+                self.agent.train()
 
-                if done:
-                    global_rewards.append(episode_reward)
-                    global_episodes += 1
-                    episode_reward = 0
-                    episode_steps = 0
-                    rewards = []
-                    obs = self.env.reset()
-                    done = False
-                    break
-
+            global_rewards.append(episode_reward)
+            episode_reward = 0
+            rewards = []
+            obs = self.env.reset()
             self.agent.end_episode()
-            self.agent.train()

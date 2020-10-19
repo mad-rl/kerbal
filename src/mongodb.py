@@ -4,17 +4,20 @@ from pymongo import MongoClient
 class ModelVersion():
     def __init__(
         self,
-        version: str,
+        name: str,
+        version: int,
         score: int,
         model_state_dict: dict,
         optimizer_state_dict: dict
     ):
-        self.version: str = version
+        self.name: str = name
+        self.version: int = version
         self.score: int = score
         self.model_state_dict: dict = model_state_dict
         self.optimizer_state_dict: dict = optimizer_state_dict
 
     def __iter__(self):
+        yield 'name', self.name
         yield 'version', self.version
         yield 'score', self.score
         yield 'model_state_dict', self.model_state_dict
@@ -26,6 +29,7 @@ class ModelVersion():
 
 def from_dict(m: dict) -> ModelVersion:
     return ModelVersion(
+        m["name"],
         m["version"],
         m["score"],
         m["model_state_dict"],
@@ -51,16 +55,28 @@ class MongoDBHelper():
         self.collection = self.db['models_versions']
 
     def create_model_version(self, mv: ModelVersion):
-        q: dict = {"model_version": mv.model_version}
-        v: dict = {"$set": {
-            "score": 0,
-            "model_state_dict": mv.model_state_dict,
-            "optimizer_state_dict": mv.optimizer_state_dict
-        }}
+        q: dict = {"name": mv.name}
+        v: dict = {
+            "$set": {
+                "score": 0,
+                "model_state_dict": mv.model_state_dict,
+                "optimizer_state_dict": mv.optimizer_state_dict
+            },
+            "$inc": {
+                "version": 1
+            }
+        }
         self.collection.update_one(q, v, upsert=True)
 
-    def find_model_version(self, model_version: str) -> ModelVersion:
-        m: dict = self.collection.find_one({'model_version': model_version})
+    def wait_for_new_model_version(self, model_name: str, agent_mode: str) -> ModelVersion:
+        m: dict = self.collection.find_one({'name': model_name})
+
+        # wait loop
+        # agent_mode == "learner"
+        #   return model or None
+        # agent_mode == "collector"
+        #   wait until a new model version available
+
         if m is None:
             return m
 

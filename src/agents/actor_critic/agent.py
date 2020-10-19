@@ -68,6 +68,7 @@ class Agent():
         # if self.agent_mode == "learner":
         self.influx.send_reward(
             Metric_Reward(
+                self.host,
                 self.model_version,
                 self.episodes,
                 self.episode_steps,
@@ -103,10 +104,11 @@ class Agent():
         self.episodes = self.episodes + 1
         self.episode_steps = 0
 
-        mv: ModelVersion = self.mongo.find_model_version(self.model_version)
-        self.knowledge.load_model(mv)
+    def start_new_trajectory(self):
+        mv: ModelVersion = self.mongo.wait_for_new_model_version(
+            self.model_version, self.agent_mode)
 
-        pass
+        self.knowledge.load_model(mv)
 
     def end_episode(self):
         episode_reward = np.sum(np.array(self.rewards))
