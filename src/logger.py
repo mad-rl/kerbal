@@ -1,4 +1,5 @@
 import time
+import json
 import os
 
 
@@ -8,17 +9,17 @@ class Logger(object):
 
     def save(
         self,
-        json: dict,
+        data: dict,
         id: str = "default",
     ):
         log_file = f'{self.uid}_{id}.log'
         full_log_path = os.path.join(os.environ['LOGS_PATH'], log_file)
         with open(full_log_path, "a") as file:
-            file.write(json.dumps(json))
+            file.write(json.dumps(data))
             file.write("\n")
 
     def print(
         self,
-        json: dict
+        data: dict
     ):
-        print(json.dumps(json))
+        print(json.dumps(data))

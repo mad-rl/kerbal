@@ -6,6 +6,7 @@ import pika
 class ExperienceMessage():
     def __init__(
         self,
+        host: str,
         episode: int,
         step: int,
         state: list,
@@ -13,6 +14,7 @@ class ExperienceMessage():
         reward: float,
         value: float
     ):
+        self.host: str = host
         self.episode: int = episode
         self.step: int = step
         self.state: list = state
@@ -25,6 +27,7 @@ class ExperienceMessage():
         return json.dumps(self.to_dict())
 
     def __iter__(self):
+        yield 'host', self.host
         yield 'episode', self.episode
         yield 'step', self.step
         yield 'state', self.state
@@ -55,6 +58,7 @@ class RabbitMQHelper():
     def __on_experience_received__(self, ch, method, properties, body):
         experience_json: dict = json.loads(body)
         experienceMessage: ExperienceMessage = ExperienceMessage(
+            experience_json['host'],
             experience_json['episode'],
             experience_json['step'],
             experience_json['state'],

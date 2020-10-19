@@ -1,83 +1,119 @@
 import numpy as np
 
+from mongodb import MongoDBHelper
+from rabbitmq import RabbitMQHelper, ExperienceMessage
+from influxdb import InfluxDBHelper, Metric_Reward
+from logger import Logger
+from game_env import GameEnv
+
 from .knowledge import Knowledge
 from .interpreter import Interpreter
 from .actuator import Actuator
 from .experiences import Experiences
 
-from logger import Logger
-from mongodb import MongoDBHelper
-from game_env import GameEnv
-
 
 class Agent():
     def __init__(
-        self,
-        logger: Logger,
-        mongo: MongoDBHelper,
-        mode: str,
-        env: GameEnv,
-        model_version: str
+            self,
+            logger: Logger,
+            mongo: MongoDBHelper,
+            rabbit: RabbitMQHelper,
+            influx: InfluxDBHelper,
+            env: GameEnv,
+            agent_mode: str,
+            model_version: str,
+            host: str
     ):
         self.logger: Logger = logger
         self.mongo: MongoDBHelper = mongo
-        self.mode: str = mode
+        self.rabbit: RabbitMQHelper = rabbit
+        self.influx: InfluxDBHelper = influx
         self.env: GameEnv = env
         self.model_version: str = model_version
+        self.agent_mode: str = agent_mode
+        self.host: str = host
 
-        self.input_frames = 4
-        # 3 actions with two moves and None action
-        self.output_model = (2 * self.env.action_space.shape[0]) + 1
-        self.input_model = self.input_frames * \
-            self.env.observation_space.shape[0]
+        self.action_space = self.env.action_space
+        self.input_frames: int = 4
+        self.output_model: int = (2 * self.env.action_space) + 1
+        self.input_model: int = self.input_frames * self.env.observation_space
 
-        self.knowledge = Knowledge(self.input_model, self.output_model)
-        self.interpreter = Interpreter(frames=self.input_frames)
-        self.actuator = Actuator()
-        self.experiences = Experiences()
+        self.knowledge: Knowledge = Knowledge(
+            self.input_model,
+            self.output_model
+        )
+        self.interpreter: Interpreter = Interpreter(
+            frames=self.input_frames
+        )
+        self.actuator: Actuator = Actuator()
+        self.experiences: Experiences = Experiences()
 
-        self.total_steps = 0
-        self.max_reward = 0
-        self.rewards = []
+        self.episodes: int = 0
+        self.total_steps: int = 0
+        self.episode_steps: int = 0
+        self.max_reward: int = 0
+        self.rewards: list = []
 
     def get_action(self, observation):
         state = self.interpreter.obs_to_state(observation)
-        agent_action = self.knowledge.get_action(state)
+        agent_action, state_value = self.knowledge.get_action(state)
 
-        return self.actuator.agent_to_env(agent_action)
+        return self.actuator.agent_to_env(agent_action), state_value
 
-    def add_experience(self, observation, reward, env_action, next_observation, info=None) -> dict:
+    def add_experience(self, observation, reward, env_action, next_observation, info=None):
         state = self.interpreter.obs_to_state(observation)
         agent_action = self.actuator.env_to_agent(env_action)
         next_state = self.interpreter.obs_to_state(next_observation)
 
+        # if self.agent_mode == "learner":
+        self.influx.send_reward(
+            Metric_Reward(
+                self.model_version,
+                self.episodes,
+                self.episode_steps,
+                reward
+            )
+        )
+
+        if self.agent_mode == "collector":
+            self.rabbit.send_experience(
+                ExperienceMessage(
+                    self.host,
+                    self.episodes,
+                    self.episode_steps,
+                    state.tolist(),
+                    agent_action,
+                    reward,
+                    0
+                )
+            )
+
         self.experiences.add(state, reward, agent_action, next_state)
         self.rewards.append(reward)
 
-        return {'state': state, 'action': agent_action, 'next_state': next_state}
-
-    def start_step(self, current_step):
+    def start_step(self):
         pass
 
-    def end_step(self, current_step):
+    def end_step(self):
         self.episode_steps = self.episode_steps + 1
         self.total_steps = self.total_steps + 1
         pass
 
-    def start_episode(self, current_episode):
+    def start_episode(self):
+        self.episodes = self.episodes + 1
         self.episode_steps = 0
         pass
 
-    def end_episode(self, current_episode):
+    def end_episode(self):
         episode_reward = np.sum(np.array(self.rewards))
         if episode_reward > self.max_reward:
             self.max_reward = episode_reward
-        print(f"Episode: {current_episode}, Episode_reward: {episode_reward}, "
+        print(f"Episode: { self.episodes}, Episode_reward: {episode_reward}, "
               f"Max_reward: {self.max_reward}, Episode_steps: {self.episode_steps}, "
               f"Total_steps: {self.total_steps}")
         self.rewards = []
 
     def train(self):
-        if self.mode == 'learner':
+        if self.agent_mode == "learner":
             self.knowledge.train(self.experiences.get())
-            self.experiences.reset()
+        self.experiences.reset()

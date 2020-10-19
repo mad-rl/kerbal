@@ -1,7 +1,10 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+from torch.distributions.categorical import Categorical
 
 
 class ActorCritic(torch.nn.Module):
@@ -51,13 +54,13 @@ class Knowledge():
                                     lr=self.learning_rate)
 
     def get_action(self, state):
-        policy, _ = self.model(torch.tensor(state).unsqueeze(0))
+        policy, value = self.model(torch.tensor(state).unsqueeze(0))
         action = F.softmax(policy, -1).multinomial(num_samples=1)
 
-        return action
+        return action, value
 
     def train(self, experiences):
-        states = torch.tensor(experiences[:, 0].tolist()).double()
+        states  = torch.tensor(experiences[:, 0].tolist()).double()
         rewards = torch.tensor(experiences[:, 1].tolist()).double()
         actions = torch.tensor(experiences[:, 2].tolist()).long()
         next_states = torch.tensor(experiences[:, 3].tolist()).double()
@@ -95,3 +98,5 @@ class Knowledge():
         loss_fn = (policy_loss + self.value_loss_coef * value_loss)
         loss_fn.backward()
         self.optimizer.step()
+
+        torch.save(self.model.state_dict(), 'artifacts/kerbal_ac.pth')
