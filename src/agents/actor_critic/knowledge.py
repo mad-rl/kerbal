@@ -1,10 +1,9 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from torch.distributions.categorical import Categorical
+from mongodb import ModelVersion
 
 
 class ActorCritic(torch.nn.Module):
@@ -59,8 +58,14 @@ class Knowledge():
 
         return action, value
 
+    def load_model(self, mv: ModelVersion):
+        print(f"load_model {mv}")
+        if mv is not None:
+            self.model.load_state_dict(mv.model_state_dict)
+            self.optimizer.load_state_dict(mv.optimizer_state_dict)
+
     def train(self, experiences):
-        states  = torch.tensor(experiences[:, 0].tolist()).double()
+        states = torch.tensor(experiences[:, 0].tolist()).double()
         rewards = torch.tensor(experiences[:, 1].tolist()).double()
         actions = torch.tensor(experiences[:, 2].tolist()).long()
         next_states = torch.tensor(experiences[:, 3].tolist()).double()
@@ -99,4 +104,4 @@ class Knowledge():
         loss_fn.backward()
         self.optimizer.step()
 
-        torch.save(self.model.state_dict(), 'artifacts/kerbal_ac.pth')
+        # torch.save(self.model.state_dict(), 'artifacts/kerbal_ac.pth')

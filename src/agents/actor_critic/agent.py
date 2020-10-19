@@ -1,6 +1,6 @@
 import numpy as np
 
-from mongodb import MongoDBHelper
+from mongodb import MongoDBHelper, ModelVersion
 from rabbitmq import RabbitMQHelper, ExperienceMessage
 from influxdb import InfluxDBHelper, Metric_Reward
 from logger import Logger
@@ -60,7 +60,7 @@ class Agent():
 
         return self.actuator.agent_to_env(agent_action), state_value
 
-    def add_experience(self, observation, reward, env_action, next_observation, info=None):
+    def add_experience(self, observation, reward: float, env_action, next_observation, info=None):
         state = self.interpreter.obs_to_state(observation)
         agent_action = self.actuator.env_to_agent(env_action)
         next_state = self.interpreter.obs_to_state(next_observation)
@@ -102,6 +102,10 @@ class Agent():
     def start_episode(self):
         self.episodes = self.episodes + 1
         self.episode_steps = 0
+
+        mv: ModelVersion = self.mongo.find_model_version(self.model_version)
+        self.knowledge.load_model(mv)
+
         pass
 
     def end_episode(self):
@@ -116,4 +120,13 @@ class Agent():
     def train(self):
         if self.agent_mode == "learner":
             self.knowledge.train(self.experiences.get())
+
+            mv: ModelVersion = ModelVersion(
+                self.model_version,
+                0,
+                self.knowledge.model.state_dict(),
+                self.knowledge.optimizer.state_dict()
+            )
+            self.mongo.create_model_version(mv)
+
         self.experiences.reset()

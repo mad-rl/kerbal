@@ -50,19 +50,18 @@ class MongoDBHelper():
         self.db = self.client[dbname]
         self.collection = self.db['models_versions']
 
-    def create_model_version(self, model_version: ModelVersion):
-        self.collection.insert_one(model_version.to_dict())
+    def create_model_version(self, mv: ModelVersion):
+        q: dict = {"model_version": mv.model_version}
+        v: dict = {"$set": {
+            "score": 0,
+            "model_state_dict": mv.model_state_dict,
+            "optimizer_state_dict": mv.optimizer_state_dict
+        }}
+        self.collection.update_one(q, v, upsert=True)
 
-    def find_model_version(self, model_version: str = 'latest') -> list:
-        mm_vv: list = []
-        if model_version == 'latest':
-            m: dict = self.collection.find_one()
-            print(m)
-            mv: ModelVersion = ModelVersion.from_dict(m)
-            mm_vv.append(mv)
-        else:
-            mm_vv_dict: dict = self.collection.find()
-            for m_v_d in mm_vv_dict:
-                mv: ModelVersion = ModelVersion.from_dict(m_v_d)
-                mm_vv.append(mv)
-        return mm_vv
+    def find_model_version(self, model_version: str) -> ModelVersion:
+        m: dict = self.collection.find_one({'model_version': model_version})
+        if m is None:
+            return m
+
+        return ModelVersion.from_dict(m)
