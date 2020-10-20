@@ -58,7 +58,7 @@ class InfluxDBHelper():
 
     def send_reward(self, metric: Metric_Reward):
         _point = Point(metric.measurement)
-        _point.tag("host", metric.model_version)
+        _point.tag("host", metric.host)
         _point.tag("model_version", metric.model_version)
         _point.field("episode", metric.episode)
         _point.field("step", metric.step)

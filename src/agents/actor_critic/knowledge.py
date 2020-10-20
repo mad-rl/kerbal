@@ -1,9 +1,8 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
-from mongodb import ModelVersion
 
 
 class ActorCritic(torch.nn.Module):
@@ -36,9 +35,10 @@ class ActorCritic(torch.nn.Module):
 
 
 class Knowledge():
-    def __init__(self, input_frames, action_space):
+    def __init__(self, input_frames, action_space, local_model_file_name: str):
         self.input_frames = input_frames
         self.action_space = action_space
+        self.local_model_file_name = local_model_file_name
         self.model = ActorCritic(self.input_frames, self.action_space)
         self.model.double()
         self.model = self.model.to('cpu')
@@ -53,16 +53,15 @@ class Knowledge():
                                     lr=self.learning_rate)
 
     def get_action(self, state):
-        policy, value = self.model(torch.tensor(state).unsqueeze(0))
+        policy, value = self.model(torch.tensor(np.array(state)).unsqueeze(0))
         action = F.softmax(policy, -1).multinomial(num_samples=1)
 
         return action, value
 
-    def load_model(self, mv: ModelVersion):
-        print(f"load_model {mv}")
-        if mv is not None:
-            self.model.load_state_dict(mv.model_state_dict)
-            self.optimizer.load_state_dict(mv.optimizer_state_dict)
+    def load_model(self, filename: str):
+        if filename is not None:
+            self.model.load_state_dict(torch.load(filename))
+            self.model.eval()
 
     def train(self, experiences):
         states = torch.tensor(experiences[:, 0].tolist()).double()
@@ -104,4 +103,4 @@ class Knowledge():
         loss_fn.backward()
         self.optimizer.step()
 
-        # torch.save(self.model.state_dict(), 'artifacts/kerbal_ac.pth')
+        torch.save(self.model.state_dict(), self.local_model_file_name)

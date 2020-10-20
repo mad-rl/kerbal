@@ -1,6 +1,6 @@
 import numpy as np
 
-from mongodb import MongoDBHelper, ModelVersion
+from mongodb import MongoDBHelper
 from rabbitmq import RabbitMQHelper, ExperienceMessage
 from influxdb import InfluxDBHelper, Metric_Reward
 from logger import Logger
@@ -21,6 +21,7 @@ class Agent():
             influx: InfluxDBHelper,
             env: GameEnv,
             agent_mode: str,
+            model_name: str,
             model_version: str,
             host: str
     ):
@@ -29,6 +30,9 @@ class Agent():
         self.rabbit: RabbitMQHelper = rabbit
         self.influx: InfluxDBHelper = influx
         self.env: GameEnv = env
+        self.model_name: str = model_name
+        if model_version is None:
+            model_version = self.mongo.last_model_file_md5
         self.model_version: str = model_version
         self.agent_mode: str = agent_mode
         self.host: str = host
@@ -40,7 +44,8 @@ class Agent():
 
         self.knowledge: Knowledge = Knowledge(
             self.input_model,
-            self.output_model
+            self.output_model,
+            self.mongo.local_model_file_name
         )
         self.interpreter: Interpreter = Interpreter(
             frames=self.input_frames
@@ -76,18 +81,16 @@ class Agent():
             )
         )
 
-        if self.agent_mode == "collector":
-            self.rabbit.send_experience(
-                ExperienceMessage(
-                    self.host,
-                    self.episodes,
-                    self.episode_steps,
-                    state.tolist(),
-                    agent_action,
-                    reward,
-                    0
-                )
+        # if self.agent_mode == "collector":
+        self.rabbit.send_experience(
+            ExperienceMessage(
+                self.host,
+                state,
+                agent_action,
+                reward,
+                next_state
             )
+        )
 
         self.experiences.add(state, reward, agent_action, next_state)
         self.rewards.append(reward)
@@ -105,10 +108,13 @@ class Agent():
         self.episode_steps = 0
 
     def start_new_trajectory(self):
-        mv: ModelVersion = self.mongo.wait_for_new_model_version(
-            self.model_version, self.agent_mode)
-
-        self.knowledge.load_model(mv)
+        print("new trajectory to load last model version")
+        local_model_filename, self.model_version = self.mongo.wait_for_new_model_version(
+            self.model_name,
+            self.agent_mode
+        )
+        print(f"local model found [{local_model_filename}]")
+        self.knowledge.load_model(local_model_filename)
 
     def end_episode(self):
         episode_reward = np.sum(np.array(self.rewards))
@@ -121,14 +127,25 @@ class Agent():
 
     def train(self):
         if self.agent_mode == "learner":
+
+            print("start training")
+
+            experiences: list = self.rabbit.get_all_experiences()
+            experience: ExperienceMessage
+
+            for experience in experiences:
+                self.experiences.add(
+                    experience.state,
+                    experience.reward,
+                    experience.action,
+                    experience.next_state
+                )
+
             self.knowledge.train(self.experiences.get())
 
-            mv: ModelVersion = ModelVersion(
-                self.model_version,
-                0,
-                self.knowledge.model.state_dict(),
-                self.knowledge.optimizer.state_dict()
-            )
-            self.mongo.create_model_version(mv)
+            print(
+                f"finished training of {self.experiences.count()} experiences")
+
+            self.mongo.save_model_version(self.model_name)
 
         self.experiences.reset()

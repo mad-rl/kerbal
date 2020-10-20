@@ -1,5 +1,4 @@
 import json
-import time
 import pika
 
 
@@ -7,33 +6,26 @@ class ExperienceMessage():
     def __init__(
         self,
         host: str,
-        episode: int,
-        step: int,
         state: list,
         action: int,
         reward: float,
-        value: float
+        next_state: list
     ):
         self.host: str = host
-        self.episode: int = episode
-        self.step: int = step
         self.state: list = state
         self.action: int = action
         self.reward: float = reward
-        self.value: int = value
-        self.ts = int(time.time()*100000)
+        self.next_state: list = next_state
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict())
 
     def __iter__(self):
         yield 'host', self.host
-        yield 'episode', self.episode
-        yield 'step', self.step
         yield 'state', self.state
         yield 'action', self.action
         yield 'reward', self.reward
-        yield 'value', self.value
+        yield 'next_state', self.next_state
 
     def to_dict(self) -> dict:
         return dict(self)
@@ -47,6 +39,7 @@ class RabbitMQHelper():
         self.channel = self.connection.channel()
         self.queue = queue
         self.channel.queue_declare(queue=self.queue)
+        self.experiences_batch: list = []
 
     def send_experience(self, experience: ExperienceMessage):
         self.channel.basic_publish(
@@ -59,22 +52,31 @@ class RabbitMQHelper():
         experience_json: dict = json.loads(body)
         experienceMessage: ExperienceMessage = ExperienceMessage(
             experience_json['host'],
-            experience_json['episode'],
-            experience_json['step'],
             experience_json['state'],
             experience_json['action'],
             experience_json['reward'],
-            experience_json['value']
+            experience_json['next_state']
         )
-        self.boundCallback(experienceMessage)
+        self.experiences_batch.append(experienceMessage)
+        method, properties, body = ch.basic_get(queue=self.queue)
+        if method is None:
+            self.stop_consuming()
 
-    # callback(ch, method, properties, body):
-    def start_consuming(self, boundCallback):
-        self.boundCallback = boundCallback
+    def get_all_experiences(self) -> list:
+        self.experiences_batch = []
+        print("start consuming")
+        self.start_consuming()
+        print("stop consuming")
+        return self.experiences_batch
+
+    def start_consuming(self):
         self.channel.basic_consume(queue=self.queue,
                                    auto_ack=True,
                                    on_message_callback=self.__on_experience_received__)
         self.channel.start_consuming()
+
+    def stop_consuming(self):
+        self.channel.stop_consuming()
 
     def close_conn(self):
         self.connection.close()

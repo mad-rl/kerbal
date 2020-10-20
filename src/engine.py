@@ -28,7 +28,7 @@ class Engine():
 
         obs = self.env.reset()
 
-        current_episode: int - 0
+        current_episode: int = 0
         for current_episode in range(self.episodes):
             current_episode = current_episode + 1
             self.agent.start_episode()
@@ -49,8 +49,12 @@ class Engine():
                     obs = next_obs
                     self.agent.end_step()
 
+                    if done is True:
+                        break
+
                 self.agent.train()
 
+            done = False
             global_rewards.append(episode_reward)
             episode_reward = 0
             rewards = []

@@ -16,9 +16,9 @@ class Interpreter():
                 self.state[i, :] = sensor.data
         else:
             self.state[:self.frames - 1, :] = self.state[1:, :]
-            self.state[self.frames - 1, :]  = sensor.data
+            self.state[self.frames - 1, :] = sensor.data
 
-        return self.state
+        return self.state.tolist()
 
     def reset(self):
         self.state = np.zeros([self.frames, self.n_features])

@@ -31,7 +31,8 @@ mongo: MongoDBHelper = MongoDBHelper(
     os.environ["MONGODB_HOST"],
     os.environ["MONGODB_USER"],
     os.environ["MONGODB_PASSWORD"],
-    os.environ["MONGODB_DBNAME"]
+    os.environ["MONGODB_DBNAME"],
+    os.environ["LOCAL_MODEL_FILENAME"]
 )
 print('MONGODB IS READY')
 
@@ -79,6 +80,7 @@ else:
         influx,
         env,
         AGENT_MODE,
+        os.environ["MODEL_NAME"],
         os.environ["MODEL_VERSION"],
         os.environ["HOST_NAME"]
     )

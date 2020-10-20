@@ -6,8 +6,8 @@ class Experiences():
         self.experiences = []
 
     def add(self, state, reward, agent_action, next_state):
-        self.experiences.append( 
-            (state.tolist(), reward, agent_action, next_state.tolist())
+        self.experiences.append(
+            (state, reward, agent_action, next_state)
         )
 
     def get(self, batch_size=None):
@@ -18,3 +18,6 @@ class Experiences():
 
     def reset(self):
         self.experiences = []
+
+    def count(self):
+        return len(self.experiences)
