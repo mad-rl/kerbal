@@ -107,6 +107,9 @@ class GameEnv(object):
             math.cos(math.radians(heading)) * (90 - pitch) / 90,
         ]
 
+        self.last_altitude = altitude
+        self.last_pitch = pitch
+
         return state
 
     def pre_launch_setup(self):
