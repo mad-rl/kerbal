@@ -43,7 +43,7 @@ class MongoDBHelper():
                         f"local[{self.last_model_file_md5}] "
                         f"remote[{file.md5}]"
                     )
-                    if file.md5 > self.last_model_file_md5:
+                    if file.md5 != self.last_model_file_md5:
                         self.last_model_file_md5 = file.md5
                         local_file_ready = True
 
