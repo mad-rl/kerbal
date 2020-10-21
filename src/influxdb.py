@@ -1,6 +1,6 @@
 from datetime import datetime
 from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client.client.write_api import ASYNCHRONOUS
 
 
 class Metric():
@@ -54,13 +54,13 @@ class InfluxDBHelper():
             token=token,
             org=org
         )
-        self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+        self.write_api = self.client.write_api(write_options=ASYNCHRONOUS)
 
     def send_reward(self, metric: Metric_Reward):
         _point = Point(metric.measurement)
         _point.tag("host", metric.host)
         _point.tag("model_version", metric.model_version)
-        _point.field("episode", metric.episode)
+        _point.tag("episode", metric.episode)
         _point.field("step", metric.step)
         _point.field("reward", metric.reward)
         _point.time(metric.ts, WritePrecision.NS)

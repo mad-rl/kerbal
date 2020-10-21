@@ -32,12 +32,25 @@ class GameEnv(object):
 
         self.total_steps += 1
 
-        self.krpc.reset_controls()
-        self.choose_action(action)
+        # _old_time = time.time()
 
+        self.krpc.reset_controls()
+
+        # print(f"elapsed_time_C-1[{time.time()-_old_time}]")
+        # _old_time = time.time()
+
+        self.choose_action(action)
+        # print(f"self.choose_action(action) > [{time.time()-_old_time}]")
+        # _old_time = time.time()
         state = self.get_state()
+        # print(f"state = self.get_state() > [{time.time()-_old_time}]")
+        # _old_time = time.time()
         reward = self.get_reward()
+        # print(f"reward = self.get_reward() > [{time.time()-_old_time}]")
+        # _old_time = time.time()
         done = self.epoch_ending()
+        # print(f"done = self.epoch_ending() > [{time.time()-_old_time}]")
+        # _old_time = time.time()
 
         return state, reward, done, {}
 
@@ -54,8 +67,9 @@ class GameEnv(object):
             self.krpc.vessel.control.yaw = 1
 
     def epoch_ending(self):
-        altitude = self.krpc.get_telemetry().f_mean_altitude
-        crew_count = self.krpc.get_telemetry().crew_count()
+        telemetry = self.krpc.get_telemetry()
+        altitude = telemetry.f_mean_altitude
+        crew_count = telemetry.crew_count()
 
         done = False
         if crew_count == 0:
@@ -97,9 +111,11 @@ class GameEnv(object):
         return state
 
     def get_state(self):
-        altitude = self.krpc.get_telemetry().f_mean_altitude
-        heading = self.krpc.get_telemetry().heading()
-        pitch = self.krpc.get_telemetry().pitch()
+        telemetry = self.krpc.get_telemetry()
+
+        altitude = telemetry.f_mean_altitude
+        heading = telemetry.heading()
+        pitch = telemetry.pitch()
 
         state = [
             ((altitude + 0.2) / self.max_altitude) / 1.2,

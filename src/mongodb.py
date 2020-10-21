@@ -32,7 +32,6 @@ class MongoDBHelper():
     def wait_for_new_model_version(self, model_name: str, agent_mode: str) -> (str, str):
         local_file_ready = False
         while local_file_ready is False:
-            time.sleep(3.0)
             file: GridOut = self.find_model_by_name(model_name)
             if agent_mode == "learner":
                 local_file_ready = True
@@ -46,6 +45,9 @@ class MongoDBHelper():
                     if file.md5 != self.last_model_file_md5:
                         self.last_model_file_md5 = file.md5
                         local_file_ready = True
+            if local_file_ready is False:
+                print("wait 1 second to check again")
+                time.sleep(1.0)
 
         if file is not None:
             print(

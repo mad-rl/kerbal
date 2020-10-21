@@ -66,6 +66,7 @@ class RabbitMQHelper():
         self.experiences_batch = []
         print("start consuming")
         self.start_consuming()
+        print(f"experiences received {len(self.experiences_batch)}")
         print("stop consuming")
         return self.experiences_batch
 

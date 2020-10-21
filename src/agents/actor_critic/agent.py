@@ -81,7 +81,6 @@ class Agent():
             )
         )
 
-        # if self.agent_mode == "collector":
         self.rabbit.send_experience(
             ExperienceMessage(
                 self.host,
@@ -101,7 +100,6 @@ class Agent():
     def end_step(self):
         self.episode_steps = self.episode_steps + 1
         self.total_steps = self.total_steps + 1
-        pass
 
     def start_episode(self):
         self.episodes = self.episodes + 1
