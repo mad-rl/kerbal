@@ -131,3 +131,6 @@ dmypy.json
 .vscode/launch.json
 .pro.env
 .pro-test.env
+
+# MacOS hidden files
+.DS_Store
