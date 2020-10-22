@@ -29,8 +29,12 @@ class MongoDBHelper():
             f"saving local model {self.local_model_file_name} to {model_file_name} in mongo")
         self.fs.put(local_file.read(), filename=model_file_name)
 
-    def wait_for_new_model_version(self, model_name: str, agent_mode: str) -> (str, str):
+    def wait_for_new_model_version(self, model_name: str, model_version: str, agent_mode: str) -> (str, str):
         local_file_ready = False
+
+        if self.last_model_file_md5 != model_version:
+            self.last_model_file_md5 = model_version
+
         while local_file_ready is False:
             file: GridOut = self.find_model_by_name(model_name)
             if agent_mode == "learner":

@@ -83,6 +83,7 @@ class Agent():
 
         self.rabbit.send_experience(
             ExperienceMessage(
+                self.model_version,
                 self.host,
                 state,
                 agent_action,
@@ -128,7 +129,8 @@ class Agent():
 
             print("start training")
 
-            experiences: list = self.rabbit.get_all_experiences()
+            experiences: list = self.rabbit.get_all_experiences_by_model_version(
+                self.model_version)
             experience: ExperienceMessage
 
             for experience in experiences:

@@ -49,8 +49,8 @@ class Knowledge():
         self.tau = 1.0
         self.entropy_coef = 0.01
         self.learning_rate = 0.00001
-        self.batch_size = 16
-        self.epochs = 10
+        self.batch_size = 24
+        self.epochs = 32
         self.clip_grad_norm = 0.5
         self.ppo_eps = 0.1
 
@@ -75,9 +75,9 @@ class Knowledge():
         next_states = torch.tensor(experiences[:, 3].tolist()).double()
 
         logits, values = self.model(states)
-        probs = F.softmax(logits, -1)
+        # probs = F.softmax(logits, -1)
         log_probs = F.log_softmax(logits, -1)
-        entropies = -(log_probs * probs).sum(1, keepdim=True)
+        # entropies = -(log_probs * probs).sum(1, keepdim=True)
         log_probs = log_probs.gather(1, actions.unsqueeze(1))
 
         _, value = self.model(next_states[-1].unsqueeze(0))
@@ -86,7 +86,7 @@ class Knowledge():
         # Calculate Generalized Advantage Estimation
         num_step = len(rewards)
         discounted_return = np.empty([num_step])
-        R = values[-1]
+        # R = values[-1]
         gae = torch.zeros(1, 1)
         for i in reversed(range(len(rewards))):
             delta_t = (rewards[i] +
@@ -117,17 +117,24 @@ class Knowledge():
                 prob_distribution = Categorical(F.softmax(policy, dim=-1))
                 log_prob = prob_distribution.log_prob(actions[sample_idx])
 
-                ratio = torch.exp(log_prob - log_prob_old[sample_idx])
-                surr1 = ratio * adv[sample_idx]
-                surr2 = (torch.clamp(ratio, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps) * adv[sample_idx])
+                ratio = torch.exp(
+                    log_prob - log_prob_old[sample_idx]
+                ).detach().numpy()
 
-                actor_loss = -torch.min(surr1, surr2).mean()
-                critic_loss = F.mse_loss(value.sum(1), discounted_return[sample_idx])
+                ratio = ratio.reshape(self.batch_size, -1)
+                surr1 = ratio * adv[sample_idx]
+                surr2 = (torch.clamp(torch.tensor(ratio), 1.0 - self.ppo_eps,
+                                     1.0 + self.ppo_eps) * adv[sample_idx])
+
+                actor_loss = -torch.min(torch.tensor(surr1), surr2).mean()
+                critic_loss = F.mse_loss(
+                    value.sum(1), torch.tensor(discounted_return[sample_idx]))
 
                 self.optimizer.zero_grad()
                 loss = actor_loss + critic_loss
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip_grad_norm)
+                torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(), self.clip_grad_norm)
                 self.optimizer.step()
 
         torch.save(self.model.state_dict(), self.local_model_file_name)

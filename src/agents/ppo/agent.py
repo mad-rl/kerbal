@@ -31,6 +31,7 @@ class Agent():
         self.influx: InfluxDBHelper = influx
         self.env: GameEnv = env
         self.model_name: str = model_name
+
         if model_version is None:
             model_version = self.mongo.last_model_file_md5
         self.model_version: str = model_version
@@ -74,6 +75,7 @@ class Agent():
         self.influx.send_reward(
             Metric_Reward(
                 self.host,
+                self.model_name,
                 self.model_version,
                 self.episodes,
                 self.episode_steps,
@@ -83,6 +85,7 @@ class Agent():
 
         self.rabbit.send_experience(
             ExperienceMessage(
+                self.model_version,
                 self.host,
                 state,
                 agent_action,
@@ -91,7 +94,7 @@ class Agent():
             )
         )
 
-        self.experiences.add(state, reward, agent_action, next_state)
+        # self.experiences.add(state, reward, agent_action, next_state)
         self.rewards.append(reward)
 
     def start_step(self):
@@ -109,9 +112,11 @@ class Agent():
         print("new trajectory to load last model version")
         local_model_filename, self.model_version = self.mongo.wait_for_new_model_version(
             self.model_name,
+            self.model_version,
             self.agent_mode
         )
-        print(f"local model found [{local_model_filename}]")
+        print(
+            f"model_version[{self.model_version}] loaded in local [{local_model_filename}]")
         self.knowledge.load_model(local_model_filename)
 
     def end_episode(self):
@@ -128,7 +133,8 @@ class Agent():
 
             print("start training")
 
-            experiences: list = self.rabbit.get_all_experiences()
+            experiences: list = self.rabbit.get_all_experiences_by_model_version(
+                self.model_version)
             experience: ExperienceMessage
 
             for experience in experiences:

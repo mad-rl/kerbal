@@ -42,7 +42,7 @@ class Engine():
                 for _ in range(self.max_trajectory_steps):
 
                     # _old_time = time.time()
-                    _step_time = time.time()
+                    # _step_time = time.time()
 
                     _steps = _steps + 1
 
@@ -75,7 +75,8 @@ class Engine():
                     # print(f"elapsed_time_E[{time.time()-_old_time}]")
                     # _old_time = time.time()
 
-                    print(f"step[{_steps}] time [{time.time()-_step_time}]")
+                    print(
+                        f"episode[{current_episode}] step[{_steps}] episode_reward [{episode_reward}]")
 
                     if done is True:
                         break

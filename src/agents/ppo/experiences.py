@@ -12,9 +12,9 @@ class Experiences():
 
     def get(self, batch_size=None):
         if not batch_size:
-            return np.array(self.experiences)
+            return np.array(self.experiences, dtype=object)
         else:
-            return np.array(self.experiences[batch_size])
+            return np.array(self.experiences[batch_size], dtype=object)
 
     def reset(self):
         self.experiences = []
